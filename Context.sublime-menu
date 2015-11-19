@@ -1,0 +1,15 @@
+[
+    {
+        "caption": "-"
+    },
+    {
+        "command": "svndiff",
+        "args": {},
+        "caption": "Svn Diff"
+    },
+    {
+        "command": "svnci",
+        "args": {},
+        "caption": "Svn Commit"
+    }
+]

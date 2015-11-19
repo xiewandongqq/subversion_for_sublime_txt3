@@ -1,0 +1,14 @@
+[
+    {
+        "caption": "-"
+    },
+    {
+        "caption": "SVN Stat",
+        "command": "svnst",
+        "args": {
+            "dirs": [],
+            "files": []
+        }
+    }
+  
+]
