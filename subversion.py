@@ -1,5 +1,7 @@
 import sublime, sublime_plugin
-import sys, os, pysvn
+import sys, os
+sys.path.append(sublime.packages_path()+'/subversion')
+import pysvn
 
 client = pysvn.Client();
 
