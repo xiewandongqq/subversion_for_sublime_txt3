@@ -249,7 +249,7 @@ class SvnciCommand(sublime_plugin.TextCommand):
 		print("Message:" + msg)
 
 		try:
-			commit_info = client.checkin( SvnciCommand.file_name, msg, recurse=False )
+			commit_info = client.checkin( SvnciCommand.file_name, msg, recurse=True )
 		except pysvn.ClientError as e:
 			print(e.args[0])
 			return
@@ -293,7 +293,7 @@ class SvnupCommand(sublime_plugin.TextCommand):
 		printSvnCmd("Update",path_str)
 		
 		try:		
-			rev_list = client.update( path_str, recurse=False )
+			rev_list = client.update( path_str, recurse=True )
 		except pysvn.ClientError as e:
 			print(e.args[0])
 			return
@@ -309,7 +309,7 @@ class SvnrevertCommand(sublime_plugin.TextCommand):
 
 		printSvnCmd("Revert", paths_str)
 		showConsole(self.view)
-		
+
 		try:
 			client.revert(paths_str, True)
 		except pysvn.ClientError as e:
