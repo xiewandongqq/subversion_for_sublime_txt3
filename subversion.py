@@ -1,6 +1,7 @@
 import sublime, sublime_plugin
 import sys, os
-sys.path.append(sublime.packages_path()+'/subversion')
+#sys.path.append(sublime.packages_path()+'/subversion')
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 import pysvn
 
 client = pysvn.Client();
@@ -22,16 +23,144 @@ pysvn.wc_status_kind.replaced: 'R',
 pysvn.wc_status_kind.unversioned: '?',
 }
 
+wc_notify_action_map = {
+pysvn.wc_notify_action.add: 'A',
+pysvn.wc_notify_action.commit_added: 'A',
+pysvn.wc_notify_action.commit_deleted: 'D',
+pysvn.wc_notify_action.commit_modified: 'M',
+pysvn.wc_notify_action.commit_postfix_txdelta: None,
+pysvn.wc_notify_action.commit_replaced: 'R',
+pysvn.wc_notify_action.copy: 'c',
+pysvn.wc_notify_action.delete: 'D',
+pysvn.wc_notify_action.failed_revert: 'F',
+pysvn.wc_notify_action.resolved: 'R',
+pysvn.wc_notify_action.restore: 'R',
+pysvn.wc_notify_action.revert: 'R',
+pysvn.wc_notify_action.skip: 'skip',
+pysvn.wc_notify_action.status_completed: None,
+pysvn.wc_notify_action.status_external: 'X',
+pysvn.wc_notify_action.update_add: 'A',
+pysvn.wc_notify_action.update_completed: None,
+pysvn.wc_notify_action.update_delete: 'D',
+pysvn.wc_notify_action.update_external: 'X',
+pysvn.wc_notify_action.update_update: 'U',
+pysvn.wc_notify_action.annotate_revision: 'A',
+}
+
+# new in svn 1.4?
+if hasattr( pysvn.wc_notify_action, 'locked' ):
+    wc_notify_action_map[ pysvn.wc_notify_action.locked ] = 'locked'
+    wc_notify_action_map[ pysvn.wc_notify_action.unlocked ] = 'unlocked'
+    wc_notify_action_map[ pysvn.wc_notify_action.failed_lock ] = 'failed_lock'
+    wc_notify_action_map[ pysvn.wc_notify_action.failed_unlock ] = 'failed_unlock'
+
+# new in svn 1.5
+if hasattr( pysvn.wc_notify_action, 'exists' ):
+    wc_notify_action_map[ pysvn.wc_notify_action.exists ] = 'exists'
+    wc_notify_action_map[ pysvn.wc_notify_action.changelist_set ] = 'changelist_set'
+    wc_notify_action_map[ pysvn.wc_notify_action.changelist_clear ] = 'changelist_clear'
+    wc_notify_action_map[ pysvn.wc_notify_action.changelist_moved ] = 'changelist_moved'
+    wc_notify_action_map[ pysvn.wc_notify_action.foreign_merge_begin ] = 'foreign_merge_begin'
+    wc_notify_action_map[ pysvn.wc_notify_action.merge_begin ] = 'merge_begin'
+    wc_notify_action_map[ pysvn.wc_notify_action.update_replace ] = 'update_replace'
+
+# new in svn 1.6
+if hasattr( pysvn.wc_notify_action, 'property_added' ):
+    wc_notify_action_map[ pysvn.wc_notify_action.property_added ] = 'property_added'
+    wc_notify_action_map[ pysvn.wc_notify_action.property_modified ] = 'property_modified'
+    wc_notify_action_map[ pysvn.wc_notify_action.property_deleted ] = 'property_deleted'
+    wc_notify_action_map[ pysvn.wc_notify_action.property_deleted_nonexistent ] = 'property_deleted_nonexistent'
+    wc_notify_action_map[ pysvn.wc_notify_action.revprop_set ] = 'revprop_set'
+    wc_notify_action_map[ pysvn.wc_notify_action.revprop_deleted ] = 'revprop_deleted'
+    wc_notify_action_map[ pysvn.wc_notify_action.merge_completed ] = 'merge_completed'
+    wc_notify_action_map[ pysvn.wc_notify_action.tree_conflict ] = 'tree_conflict'
+    wc_notify_action_map[ pysvn.wc_notify_action.failed_external ] = 'failed_external'
+
+# new in svn 1.7
+if hasattr( pysvn.wc_notify_action, 'update_started' ):
+    wc_notify_action_map[ pysvn.wc_notify_action.update_started ] = 'update_started'
+    wc_notify_action_map[ pysvn.wc_notify_action.update_skip_obstruction ] = 'update_skip_obstruction'
+    wc_notify_action_map[ pysvn.wc_notify_action.update_skip_working_only ] = 'update_skip_working_only'
+    wc_notify_action_map[ pysvn.wc_notify_action.update_external_removed ] = 'update_external_removed'
+    wc_notify_action_map[ pysvn.wc_notify_action.update_shadowed_add ] = 'update_shadowed_add'
+    wc_notify_action_map[ pysvn.wc_notify_action.update_shadowed_update ] = 'update_shadowed_update'
+    wc_notify_action_map[ pysvn.wc_notify_action.update_shadowed_delete ] = 'update_shadowed_delete'
+    wc_notify_action_map[ pysvn.wc_notify_action.merge_record_info ] = 'merge_record_info'
+    wc_notify_action_map[ pysvn.wc_notify_action.upgraded_path ] = 'upgraded_path'
+    wc_notify_action_map[ pysvn.wc_notify_action.merge_record_info_begin ] = 'merge_record_info_begin'
+    wc_notify_action_map[ pysvn.wc_notify_action.merge_elide_info ] = 'merge_elide_info'
+    wc_notify_action_map[ pysvn.wc_notify_action.patch ] = 'patch'
+    wc_notify_action_map[ pysvn.wc_notify_action.patch_applied_hunk ] = 'patch_applied_hunk'
+    wc_notify_action_map[ pysvn.wc_notify_action.patch_rejected_hunk ] = 'patch_rejected_hunk'
+    wc_notify_action_map[ pysvn.wc_notify_action.patch_hunk_already_applied ] = 'patch_hunk_already_applied'
+    wc_notify_action_map[ pysvn.wc_notify_action.commit_copied ] = 'commit_copied'
+    wc_notify_action_map[ pysvn.wc_notify_action.commit_copied_replaced ] = 'commit_copied_replaced'
+    wc_notify_action_map[ pysvn.wc_notify_action.url_redirect ] = 'url_redirect'
+    wc_notify_action_map[ pysvn.wc_notify_action.path_nonexistent ] = 'path_nonexistent'
+    wc_notify_action_map[ pysvn.wc_notify_action.exclude ] = 'exclude'
+    wc_notify_action_map[ pysvn.wc_notify_action.failed_conflict ] = 'failed_conflict'
+    wc_notify_action_map[ pysvn.wc_notify_action.failed_missing ] = 'failed_missing'
+    wc_notify_action_map[ pysvn.wc_notify_action.failed_out_of_date ] = 'failed_out_of_date'
+    wc_notify_action_map[ pysvn.wc_notify_action.failed_no_parent ] = 'failed_no_parent'
+
+# new in svn 1.7.1+?
+if hasattr( pysvn.wc_notify_action, 'failed_locked' ):
+    wc_notify_action_map[ pysvn.wc_notify_action.failed_locked ] = 'failed_locked'
+    wc_notify_action_map[ pysvn.wc_notify_action.failed_forbidden_by_server ] = 'failed_forbidden_by_server'
+    wc_notify_action_map[ pysvn.wc_notify_action.skip_conflicted ] = 'skip_conflicted'
+
+# new in svn 1.8
+if hasattr( pysvn.wc_notify_action, 'update_broken_lock' ):
+    wc_notify_action_map[ pysvn.wc_notify_action.update_broken_lock ] = 'update_broken_lock'
+    wc_notify_action_map[ pysvn.wc_notify_action.failed_obstruction ] = 'failed_obstruction'
+    wc_notify_action_map[ pysvn.wc_notify_action.conflict_resolver_starting ] = 'conflict_resolver_starting'
+    wc_notify_action_map[ pysvn.wc_notify_action.conflict_resolver_done ] = 'conflict_resolver_done'
+    wc_notify_action_map[ pysvn.wc_notify_action.left_local_modifications ] = 'left_local_modifications'
+    wc_notify_action_map[ pysvn.wc_notify_action.foreign_copy_begin ] = 'foreign_copy_begin'
+    wc_notify_action_map[ pysvn.wc_notify_action.move_broken ] = 'move_broken'
+
+# new in svn 1.9
+if hasattr( pysvn.wc_notify_action, 'cleanup_external' ):
+    wc_notify_action_map[ pysvn.wc_notify_action.cleanup_external ] = 'cleanup_external'
+    wc_notify_action_map[ pysvn.wc_notify_action.failed_requires_target ] = 'failed_requires_target'
+    wc_notify_action_map[ pysvn.wc_notify_action.info_external ] = 'info_external'
+    wc_notify_action_map[ pysvn.wc_notify_action.commit_finalizing ] = 'commit_finalizing'
+
+
 def printSvnCmd(cmd,path):
 	print("===================== svn %s %s =====================" % (cmd, path))
 
 def showConsole(view):
 	view.window().run_command('show_panel', args={'panel':'console'})
 
+def getPath(view, args):
+	path_str=''
+	path=[]
+	if 'dirs' in args and args['dirs']:
+		path.extend(args['dirs'])
+	elif 'files' in args and args['files']:
+		path.extend(args['files'])
+
+	if len(path) == 0:
+		path.extend(view.file_name())
+
+	return ''.join(path)
+
 
 class SvndiffCommand(sublime_plugin.TextCommand):
-	def run(self, edit):
-		file_name = self.view.file_name()
+	def run(self, edit,**args):
+
+		path_str=''
+		path=[]
+		if 'dirs' in args and args['dirs']:
+			path.extend(args['dirs'])
+		elif 'files' in args and args['files']:
+			path.extend(args['files'])
+
+		if len(path) == 0:
+			path.extend(self.view.file_name())
+
+		path_str=''.join(path)
 
 		if 'TEMP' in os.environ:
 			tmpdir = os.environ['TEMP']
@@ -52,9 +181,9 @@ class SvndiffCommand(sublime_plugin.TextCommand):
 
 		showConsole(self.view)
 
-		printSvnCmd("Diff", file_name)
+		printSvnCmd("Diff", path_str)
 		try:
-			diff_text = client.diff( tmpdir, file_name, recurse=True, revision1=revision1, revision2=revision2, diff_options=['-u'])
+			diff_text = client.diff( tmpdir, path_str, recurse=True, revision1=revision1, revision2=revision2, diff_options=['-u'])
 		except pysvn.ClientError as e:
 			print(e.args[0])
 			return
@@ -62,7 +191,11 @@ class SvndiffCommand(sublime_plugin.TextCommand):
 		if len(diff_text) == 0:
 			print("no Modified.")
 		else:
-			print( diff_text.replace( '\r\n', '\n' ) )
+			view = self.view.window().new_file()
+			view.insert(edit, 0, diff_text.replace( '\r\n', '\n' ))
+			# print( diff_text.replace( '\r\n', '\n' ) )
+
+
 
 
 class SvnstCommand(sublime_plugin.TextCommand):
@@ -83,12 +216,12 @@ class SvnstCommand(sublime_plugin.TextCommand):
 		printSvnCmd("Status", paths_str)
 		all_files.sort(key=lambda x:x['text_status'] )
 		for file in all_files:
-			if file.text_status == pysvn.wc_status_kind.ignored and ignore:
+			if file.text_status == pysvn.wc_status_kind.ignored:
 				continue
 			if file.text_status ==pysvn.wc_status_kind.normal:
 				continue
 			p_flag=1
-			print( '%s\t%s' % (wc_status_kind_map[file.text_status], file.path))
+			print( '\t%s\t%s' % (wc_status_kind_map[file.text_status], file.path))
 
 		if p_flag == 0:
 			print("no Changes.")
@@ -121,10 +254,12 @@ class SvnciCommand(sublime_plugin.TextCommand):
 			print(e.args[0])
 			return
 
-		rev = commit_info["revision"]
+		# print(commit_info)
 
-		if commit_info['post_commit_err'] is not None:
-			print( commit_info['post_commit_err'])
+		rev = commit_info
+
+		# if commit_info['post_commit_err'] is not None:
+		# 	print( commit_info['post_commit_err'])
 
 		if rev is None:
 			print( 'Nothing to commit' )
@@ -139,5 +274,46 @@ class SvnciCommand(sublime_plugin.TextCommand):
 		self.view.window().show_input_panel('SVN Commit Message:','', SvnciCommand.on_done, None, SvnciCommand.on_cancel)
 
 
+class SvnupCommand(sublime_plugin.TextCommand):
+	def run(self, edit, **args):
+		path_str=''
+		path=[]
+		if 'dirs' in args and args['dirs']:
+			path.extend(args['dirs'])
+		elif 'files' in args and args['files']:
+			path.extend(args['files'])
 
+		if len(path) == 0:
+			path.extend(self.view.file_name())
+
+		path_str=''.join(path)
+
+		print(path_str)
+		showConsole(self.view)
+		printSvnCmd("Update",path_str)
+		
+		try:		
+			rev_list = client.update( path_str, recurse=False )
+		except pysvn.ClientError as e:
+			print(e.args[0])
+			return
+
+		print('Revision number:%d' % rev_list[0].number)
+		if type(rev_list) == type([]) and len(rev_list) != 1:
+			print( 'rev_list = %r' % [rev.number for rev in rev_list] )
+		
+class SvnrevertCommand(sublime_plugin.TextCommand):
+	"""docstring for SvnrevertCommand"""
+	def run(self, edit, **args):
+		paths_str=getPath(self.view, args)
+
+		printSvnCmd("Revert", paths_str)
+		showConsole(self.view)
+		
+		try:
+			client.revert(paths_str, True)
+		except pysvn.ClientError as e:
+			print(e.args[0])
+			return
+		
 

@@ -9,6 +9,30 @@
             "dirs": [],
             "files": []
         }
+    },
+    {
+        "caption": "SVN Diff",
+        "command": "svndiff",
+        "args": {
+            "dirs": [],
+            "files": []
+        }
+    },
+    {
+        "caption": "SVN Update",
+        "command": "svnup",
+        "args": {
+            "dirs": [],
+            "files": []
+        }
+    },
+    {
+        "command": "svnrevert",
+        "args": {
+            "dirs": [],
+            "files": []
+            },
+        "caption": "Svn Revert"
     }
   
 ]

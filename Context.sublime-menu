@@ -3,6 +3,11 @@
         "caption": "-"
     },
     {
+        "command": "svnup",
+        "args": {},
+        "caption": "Svn Update"
+    },
+    {
         "command": "svndiff",
         "args": {},
         "caption": "Svn Diff"
@@ -11,5 +16,11 @@
         "command": "svnci",
         "args": {},
         "caption": "Svn Commit"
+    },
+    {
+        "command": "svnrevert",
+        "args": {},
+        "caption": "Svn Revert"
     }
+    
 ]
