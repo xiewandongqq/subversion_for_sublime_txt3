@@ -21,6 +21,11 @@
         "command": "svnrevert",
         "args": {},
         "caption": "Svn Revert"
+    },
+    {
+        "command": "svnlog",
+        "args": {},
+        "caption": "Svn Log"
     }
     
 ]

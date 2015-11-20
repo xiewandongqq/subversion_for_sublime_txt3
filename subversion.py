@@ -1,5 +1,5 @@
 import sublime, sublime_plugin
-import sys, os
+import sys, os, time
 #sys.path.append(sublime.packages_path()+'/subversion')
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 import pysvn
@@ -146,6 +146,15 @@ def getPath(view, args):
 
 	return ''.join(path)
 
+def printOutput(view,edit,text):
+	new_view = view.window().create_output_panel('svn_output')
+	new_view.insert(edit, 0, text)
+	view.window().run_command('show_panel', args={'panel':'output.svn_output'})
+
+
+def fmtDateTime( t ):
+    return time.strftime( '%d-%b-%Y %H:%M:%S', time.localtime( t ) )
+
 
 class SvndiffCommand(sublime_plugin.TextCommand):
 	def run(self, edit,**args):
@@ -179,30 +188,29 @@ class SvndiffCommand(sublime_plugin.TextCommand):
 		revision1=pysvn.Revision( pysvn.opt_revision_kind.base )
 		revision2=pysvn.Revision( pysvn.opt_revision_kind.working )
 
-		showConsole(self.view)
+
 
 		printSvnCmd("Diff", path_str)
 		try:
 			diff_text = client.diff( tmpdir, path_str, recurse=True, revision1=revision1, revision2=revision2, diff_options=['-u'])
 		except pysvn.ClientError as e:
-			print(e.args[0])
+			printOutput(self.view, edit, e.args[0])
 			return
 
 		if len(diff_text) == 0:
-			print("no Modified.")
+			
+			printOutput(self.view, edit, "no Modified.")
 		else:
-			view = self.view.window().new_file()
-			view.insert(edit, 0, diff_text.replace( '\r\n', '\n' ))
-			# print( diff_text.replace( '\r\n', '\n' ) )
+			printOutput(self.view, edit, diff_text.replace('\r\n', '\n'))
 
 
 
 
-class SvnstCommand(sublime_plugin.TextCommand):
+class SvnstCommand(SvnCmd):
 	def run(self, edit, **args):
 		p_flag = 0
 		paths = []
-
+		print_str=''
 
 		if 'dirs' in args and args['dirs']:
 			paths.extend(args['dirs'])
@@ -212,7 +220,7 @@ class SvnstCommand(sublime_plugin.TextCommand):
 		paths_str = ''.join(paths);
 		all_files = client.status(paths_str, recurse=True, get_all=False, ignore=True, update=False);
 
-		showConsole(self.view)
+		
 		printSvnCmd("Status", paths_str)
 		all_files.sort(key=lambda x:x['text_status'] )
 		for file in all_files:
@@ -221,12 +229,13 @@ class SvnstCommand(sublime_plugin.TextCommand):
 			if file.text_status ==pysvn.wc_status_kind.normal:
 				continue
 			p_flag=1
-			print( '\t%s\t%s' % (wc_status_kind_map[file.text_status], file.path))
+			print_str += '\t%s\t%s\n' % (wc_status_kind_map[file.text_status], file.path)
 
 		if p_flag == 0:
-			print("no Changes.")
+			print_str +="no Changes."
 
-		print("\n")
+		print_str += "\n"
+		printOutput(self.view, edit, print_str)
 
 class SvnciCommand(sublime_plugin.TextCommand):
 	file_name=''
@@ -240,18 +249,17 @@ class SvnciCommand(sublime_plugin.TextCommand):
 	@staticmethod
 	def on_done(msg):
 
-		showConsole(SvnciCommand.view)
+		# showConsole(SvnciCommand.view)
 		printSvnCmd("Commit", SvnciCommand.file_name)
 		if len(msg) == 0 or msg.isspace():
-			print("need commit message.")
+			sublime.message_dialog("Need commit message.")
 			return
 
-		print("Message:" + msg)
 
 		try:
 			commit_info = client.checkin( SvnciCommand.file_name, msg, recurse=True )
 		except pysvn.ClientError as e:
-			print(e.args[0])
+			sublime.error_message(e.args[0])
 			return
 
 		# print(commit_info)
@@ -262,11 +270,11 @@ class SvnciCommand(sublime_plugin.TextCommand):
 		# 	print( commit_info['post_commit_err'])
 
 		if rev is None:
-			print( 'Nothing to commit' )
+			sublime.message_dialog( 'Nothing to commit' )
 		elif rev.number > 0:
-			print( 'Revision %s' % rev.number )
+			sublime.message_dialog( 'Revision %s' % rev.number +'\n Message:%s' % msg)
 		else:
-			print( 'Commit failed' )
+			sublime.message_dialog( 'Commit failed' )
 
 	def run(self, edit, **args):
 		SvnciCommand.view = self.view
@@ -289,9 +297,9 @@ class SvnupCommand(sublime_plugin.TextCommand):
 		path_str=''.join(path)
 
 		print(path_str)
-		showConsole(self.view)
-		printSvnCmd("Update",path_str)
 		
+		printSvnCmd("Update",path_str)
+		showConsole(self.view)
 		try:		
 			rev_list = client.update( path_str, recurse=True )
 		except pysvn.ClientError as e:
@@ -308,12 +316,54 @@ class SvnrevertCommand(sublime_plugin.TextCommand):
 		paths_str=getPath(self.view, args)
 
 		printSvnCmd("Revert", paths_str)
-		showConsole(self.view)
+		
 
 		try:
 			client.revert(paths_str, True)
 		except pysvn.ClientError as e:
-			print(e.args[0])
+			printOutput(self.view, edit, e.args[0])
 			return
-		
 
+class SvnlogCommand(sublime_plugin.TextCommand):
+	def run(self, edit, **args):
+
+		paths_str=getPath(self.view, args)
+
+		info = client.info(paths_str)
+
+		start_revision= pysvn.Revision( pysvn.opt_revision_kind.number, info.revision.number ) 
+		end_revision= pysvn.Revision( pysvn.opt_revision_kind.number, info.revision.number - 300 ) 
+
+
+		try:
+			all_logs = client.log( paths_str,revision_start=start_revision,revision_end=end_revision,discover_changed_paths=True )
+		except pysvn.ClientError as e:
+			print(e.args[0])
+			return	
+
+
+		print_str= ''
+		for log in all_logs:
+		    print_str+=( '-'*60 +'\n')
+		    print_str+=( 'rev %d: %s | %s | %d lines' %
+		        (log.revision.number
+		        ,log.author
+		        ,fmtDateTime( log.date )
+		        ,len( log.message.split('\n') )) )
+
+		    if len( log.changed_paths ) > 0:
+		        print_str+=( '\nChanged paths:\n' )
+		        for change_info in log.changed_paths:
+		            if change_info.copyfrom_path is None:
+		                print_str+=( '  %s %s\n' % (change_info.action, change_info.path) )
+		            else:
+		                print_str+=( '  %s %s (from %s:%d)\n' %
+		                    (change_info.action
+		                    ,change_info.path
+		                    ,change_info.copyfrom_path
+		                    ,change_info.copyfrom_revision.number) )
+
+		    print_str+=( log.message + '\n')
+
+		print_str+=( '-'*60 + '\n')	
+		printOutput(self.view, edit, print_str)

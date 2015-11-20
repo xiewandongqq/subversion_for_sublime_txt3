@@ -33,6 +33,14 @@
             "files": []
             },
         "caption": "Svn Revert"
+    },
+    {
+        "command": "svnlog",
+        "args": {
+            "dirs": [],
+            "files": []
+            },
+        "caption": "Svn Log"
     }
   
 ]
