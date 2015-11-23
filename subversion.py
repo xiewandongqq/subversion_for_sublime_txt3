@@ -194,7 +194,7 @@ class SvndiffCommand(sublime_plugin.TextCommand):
 		try:
 			diff_text = client.diff( tmpdir, path_str, recurse=True, revision1=revision1, revision2=revision2, diff_options=['-u'])
 		except pysvn.ClientError as e:
-			printOutput(self.view, edit, e.args[0])
+			sublime.error_message(e.args[0])
 			return
 
 		if len(diff_text) == 0:
@@ -206,7 +206,7 @@ class SvndiffCommand(sublime_plugin.TextCommand):
 
 
 
-class SvnstCommand(SvnCmd):
+class SvnstCommand(sublime_plugin.TextCommand):
 	def run(self, edit, **args):
 		p_flag = 0
 		paths = []
@@ -299,14 +299,14 @@ class SvnupCommand(sublime_plugin.TextCommand):
 		print(path_str)
 		
 		printSvnCmd("Update",path_str)
-		showConsole(self.view)
+		# showConsole(self.view)
 		try:		
 			rev_list = client.update( path_str, recurse=True )
 		except pysvn.ClientError as e:
-			print(e.args[0])
+			sublime.error_message(e.args[0])
 			return
 
-		print('Revision number:%d' % rev_list[0].number)
+		sublime.message_dialog('Revision number:%d' % rev_list[0].number)
 		if type(rev_list) == type([]) and len(rev_list) != 1:
 			print( 'rev_list = %r' % [rev.number for rev in rev_list] )
 		
@@ -321,7 +321,7 @@ class SvnrevertCommand(sublime_plugin.TextCommand):
 		try:
 			client.revert(paths_str, True)
 		except pysvn.ClientError as e:
-			printOutput(self.view, edit, e.args[0])
+			sublime.error_message(e.args[0])
 			return
 
 class SvnlogCommand(sublime_plugin.TextCommand):
@@ -338,7 +338,7 @@ class SvnlogCommand(sublime_plugin.TextCommand):
 		try:
 			all_logs = client.log( paths_str,revision_start=start_revision,revision_end=end_revision,discover_changed_paths=True )
 		except pysvn.ClientError as e:
-			print(e.args[0])
+			sublime.error_message(e.args[0])
 			return	
 
 
