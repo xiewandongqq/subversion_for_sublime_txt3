@@ -159,6 +159,7 @@ def fmtDateTime( t ):
 class SvndiffCommand(sublime_plugin.TextCommand):
 	def run(self, edit,**args):
 
+
 		path_str=''
 		path=[]
 		if 'dirs' in args and args['dirs']:
@@ -170,6 +171,8 @@ class SvndiffCommand(sublime_plugin.TextCommand):
 			path.extend(self.view.file_name())
 
 		path_str=''.join(path)
+
+		print(dir(client.info(path_str)))
 
 		if 'TEMP' in os.environ:
 			tmpdir = os.environ['TEMP']
@@ -207,6 +210,13 @@ class SvndiffCommand(sublime_plugin.TextCommand):
 
 
 class SvnstCommand(sublime_plugin.TextCommand):
+	def short_path(self, path, file_path):
+		if os.path.isdir(path) :
+			return file_path.split(path+'/')[1]
+		else:
+			return os.path.basename(file_path) 
+
+
 	def run(self, edit, **args):
 		p_flag = 0
 		paths = []
@@ -229,7 +239,7 @@ class SvnstCommand(sublime_plugin.TextCommand):
 			if file.text_status ==pysvn.wc_status_kind.normal:
 				continue
 			p_flag=1
-			print_str += '\t%s\t%s\n' % (wc_status_kind_map[file.text_status], file.path)
+			print_str += '\t%s\t\t%s\n' % (wc_status_kind_map[file.text_status], self.short_path(paths_str, file.path) )
 
 		if p_flag == 0:
 			print_str +="no Changes."
@@ -278,7 +288,7 @@ class SvnciCommand(sublime_plugin.TextCommand):
 
 	def run(self, edit, **args):
 		SvnciCommand.view = self.view
-		SvnciCommand.file_name = self.view.file_name()
+		SvnciCommand.file_name = getPath(self.view, args);
 		self.view.window().show_input_panel('SVN Commit Message:','', SvnciCommand.on_done, None, SvnciCommand.on_cancel)
 
 
@@ -367,3 +377,10 @@ class SvnlogCommand(sublime_plugin.TextCommand):
 
 		print_str+=( '-'*60 + '\n')	
 		printOutput(self.view, edit, print_str)
+
+class SvnaddCommand(sublime_plugin.TextCommand):
+	"""docstring for SvnaddCommand"""
+	def run(self, edit, **args):
+		paths_str=getPath(self.view, args)
+		client.add( paths_str, recurse=True, force=False )
+		
