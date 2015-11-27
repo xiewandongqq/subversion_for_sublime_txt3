@@ -232,7 +232,7 @@ class SvnstCommand(sublime_plugin.TextCommand):
 
 		
 		printSvnCmd("Status", paths_str)
-		all_files.sort(key=lambda x:x['text_status'] )
+		all_files.sort(key=lambda x:x['text_status'] , reverse=True)
 		for file in all_files:
 			if file.text_status == pysvn.wc_status_kind.ignored:
 				continue
