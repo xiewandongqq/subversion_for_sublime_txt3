@@ -41,6 +41,22 @@
             "files": []
             },
         "caption": "Svn Log"
+    },
+    {
+        "command": "svnadd",
+        "args": {
+            "dirs": [],
+            "files": []
+            },
+        "caption": "Svn Add"
+    },
+    {
+        "command": "svnci",
+        "args": {
+            "dirs": [],
+            "files": []
+            },
+        "caption": "Svn Commit"
     }
   
 ]

@@ -26,6 +26,11 @@
         "command": "svnlog",
         "args": {},
         "caption": "Svn Log"
+    },
+    {
+        "command": "svnadd",
+        "args": {},
+        "caption": "Svn Add"
     }
     
 ]
