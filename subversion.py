@@ -155,36 +155,28 @@ def printOutput(view,edit,text):
 def fmtDateTime( t ):
     return time.strftime( '%d-%b-%Y %H:%M:%S', time.localtime( t ) )
 
+def getTmpDir():
+	if 'TEMP' in os.environ:
+		tmpdir = os.environ['TEMP']
+	elif 'TMPDIR' in os.environ:
+		tmpdir = os.environ['TMPDIR']
+	elif 'TMP' in os.environ:
+		tmpdir = os.environ['TMP']
+	elif os.path.exists( '/usr/tmp' ):
+		tmpdir = '/usr/tmp'
+	elif os.path.exists( '/tmp' ):
+		tmpdir = '/tmp'
+	else:
+		tmpdir = ''
+	return tmpdir
 
 class SvndiffCommand(sublime_plugin.TextCommand):
 	def run(self, edit,**args):
 
 
-		path_str=''
-		path=[]
-		if 'dirs' in args and args['dirs']:
-			path.extend(args['dirs'])
-		elif 'files' in args and args['files']:
-			path.extend(args['files'])
-
-		if len(path) == 0:
-			path.extend(self.view.file_name())
-
-		path_str=''.join(path)
-
-		print(dir(client.info(path_str)))
-
-		if 'TEMP' in os.environ:
-			tmpdir = os.environ['TEMP']
-		elif 'TMPDIR' in os.environ:
-			tmpdir = os.environ['TMPDIR']
-		elif 'TMP' in os.environ:
-			tmpdir = os.environ['TMP']
-		elif os.path.exists( '/usr/tmp' ):
-			tmpdir = '/usr/tmp'
-		elif os.path.exists( '/tmp' ):
-			tmpdir = '/tmp'
-		else:
+		path_str=getPath(self.view, args)
+		tmpdir=getTmpDir()
+		if(tmpdir == ''):
 			print( 'No tmp dir!' )
 			return
 
@@ -192,8 +184,6 @@ class SvndiffCommand(sublime_plugin.TextCommand):
 		revision2=pysvn.Revision( pysvn.opt_revision_kind.working )
 
 
-
-		printSvnCmd("Diff", path_str)
 		try:
 			diff_text = client.diff( tmpdir, path_str, recurse=True, revision1=revision1, revision2=revision2, diff_options=['-u'])
 		except pysvn.ClientError as e:
@@ -201,7 +191,6 @@ class SvndiffCommand(sublime_plugin.TextCommand):
 			return
 
 		if len(diff_text) == 0:
-			
 			printOutput(self.view, edit, "no Modified.")
 		else:
 			printOutput(self.view, edit, diff_text.replace('\r\n', '\n'))
@@ -337,15 +326,18 @@ class SvnrevertCommand(sublime_plugin.TextCommand):
 class SvnlogCommand(sublime_plugin.TextCommand):
 	def run(self, edit, **args):
 
+		detail = False
+		if 'detail' in args and args['detail']:
+			detail = True
+
+
 		paths_str=getPath(self.view, args)
 
-		info = client.info(paths_str)
-
-		start_revision= pysvn.Revision( pysvn.opt_revision_kind.number, info.revision.number ) 
-		end_revision= pysvn.Revision( pysvn.opt_revision_kind.number, info.revision.number - 300 ) 
-
-
 		try:
+			info = client.info(paths_str)
+			start_revision= pysvn.Revision( pysvn.opt_revision_kind.number, info.revision.number ) 
+			end_revision= pysvn.Revision( pysvn.opt_revision_kind.number, info.revision.number - 300 ) 
+
 			all_logs = client.log( paths_str,revision_start=start_revision,revision_end=end_revision,discover_changed_paths=True )
 		except pysvn.ClientError as e:
 			sublime.error_message(e.args[0])
@@ -375,12 +367,39 @@ class SvnlogCommand(sublime_plugin.TextCommand):
 
 		    print_str+=( log.message + '\n')
 
+		    if detail == True:
+		    	print_str += '\n'
+		    	print_str += self.getDiffText(log)
+
 		print_str+=( '-'*60 + '\n')	
 		printOutput(self.view, edit, print_str)
+
+	def getDiffText(self, log):
+
+		ret_text=''
+		tmpdir = getTmpDir()
+
+		revision1 = pysvn.Revision(pysvn.opt_revision_kind.number, int(log.revision.number) - 1)
+		revision2 = pysvn.Revision(pysvn.opt_revision_kind.number, log.revision.number)	
+		diff_text = client.diff( tmpdir, self.view.file_name(), recurse=True, revision1=revision1, revision2=revision2, diff_options=['-u'])
+
+		text_arr = diff_text.split('\n')
+		for x in range(4):
+			text_arr.pop(0)
+
+		for t in text_arr:
+			ret_text +=  t + '\n'
+		return ret_text
+
+
 
 class SvnaddCommand(sublime_plugin.TextCommand):
 	"""docstring for SvnaddCommand"""
 	def run(self, edit, **args):
 		paths_str=getPath(self.view, args)
-		client.add( paths_str, recurse=True, force=False )
+		try:
+			client.add( paths_str, recurse=True, force=False )
+		except pysvn.ClientError as e:
+			sublime.error_message(e.args[0])
+		
 		
