@@ -168,7 +168,7 @@ def getTmpDir():
 		tmpdir = '/tmp'
 	else:
 		tmpdir = ''
-	return tmpdir
+	return tmpdir		
 
 class SvndiffCommand(sublime_plugin.TextCommand):
 	def run(self, edit,**args):

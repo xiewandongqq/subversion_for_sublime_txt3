@@ -28,6 +28,13 @@
         "caption": "Svn Log"
     },
     {
+        "command": "svnlog",
+        "args": {
+            "detail":"1",
+            },
+        "caption": "Svn Log(Detail)"
+    },
+    {
         "command": "svnadd",
         "args": {},
         "caption": "Svn Add"
