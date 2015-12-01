@@ -180,6 +180,14 @@ class SvnOutput(object):
 	def out_panel(self, output):
 		self.view.run_command("svnoutput", args={"output":output})
 			
+	def progress_thread(self, target, title):
+		self.status_bar_msg = title
+		self.progress = False
+		thread=threading.Thread(target=target)
+		thread.start()
+		thread2=threading.Thread(target=self.progress_bar)
+		thread2.start()
+
 	def progress_bar(self):
 		status_pic = ['--', '\\', '|', '/']
 		i=0
@@ -230,12 +238,7 @@ class SvnstCommand(sublime_plugin.TextCommand, SvnOutput):
 	def run(self, edit, **args):
 
 		self.paths_str = getPath(self.view, args)
-		self.status_bar_msg = 'SVN status'
-		self.progress = False
-		thread=threading.Thread(target=self.get_status)
-		thread.start()
-		thread2=threading.Thread(target=self.progress_bar)
-		thread2.start()
+		self.progress_thread(self.get_status, 'SVN status')
 
 	def get_status(self):
 		print_str=''
@@ -362,12 +365,7 @@ class SvnlogCommand(sublime_plugin.TextCommand, SvnOutput):
 
 	def on_done(self, msg):
 		self.msg = msg
-		self.progress=False
-		self.status_bar_msg = 'SVN Log'
-		thread = threading.Thread(target=self.get_log)
-		thread.start()
-		thread2= threading.Thread(target=self.progress_bar)
-		thread2.start()
+		self.progress_thread(self.get_log, 'SVN log')
 
 
 	def get_log(self):
