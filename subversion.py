@@ -147,9 +147,7 @@ def getPath(view, args):
 	return ''.join(path)
 
 def printOutput(view,edit,text):
-	new_view = view.window().create_output_panel('svn_output')
-	new_view.insert(edit, 0, text)
-	view.window().run_command('show_panel', args={'panel':'output.svn_output'})
+	pass
 
 
 def fmtDateTime( t ):
@@ -170,7 +168,21 @@ def getTmpDir():
 		tmpdir = ''
 	return tmpdir		
 
-class SvndiffCommand(sublime_plugin.TextCommand):
+class SvnoutputCommand(sublime_plugin.TextCommand):
+	"""docstring for SvnoutputCommand"""
+	def run(self, edit, **args):
+		if 'output' in args and args['output']:
+			new_view = self.view.window().create_output_panel('svn_output')
+			new_view.insert(edit, 0, args['output'])
+			self.view.window().run_command('show_panel', args={'panel':'output.svn_output'})
+	
+class SvnOutput(object):
+		"""docstring for SvnOutput"""
+		def out_panel(self, output):
+			self.view.run_command("svnoutput", args={"output":output})
+				
+
+class SvndiffCommand(sublime_plugin.TextCommand, SvnOutput):
 	def run(self, edit,**args):
 
 
@@ -191,14 +203,14 @@ class SvndiffCommand(sublime_plugin.TextCommand):
 			return
 
 		if len(diff_text) == 0:
-			printOutput(self.view, edit, "no Modified.")
+			self.out_panel("No changes.")
 		else:
-			printOutput(self.view, edit, diff_text.replace('\r\n', '\n'))
+			self.out_panel(diff_text.replace('\r\n', '\n'))
 
 
 
 
-class SvnstCommand(sublime_plugin.TextCommand):
+class SvnstCommand(sublime_plugin.TextCommand, SvnOutput):
 	def short_path(self, path, file_path):
 		if os.path.isdir(path) :
 			return file_path.split(path+'/')[1]
@@ -234,7 +246,7 @@ class SvnstCommand(sublime_plugin.TextCommand):
 			print_str +="no Changes."
 
 		print_str += "\n"
-		printOutput(self.view, edit, print_str)
+		self.out_panel( print_str)
 
 class SvnciCommand(sublime_plugin.TextCommand):
 	file_name=''
@@ -323,28 +335,31 @@ class SvnrevertCommand(sublime_plugin.TextCommand):
 			sublime.error_message(e.args[0])
 			return
 
-class SvnlogCommand(sublime_plugin.TextCommand):
+class SvnlogCommand(sublime_plugin.TextCommand, SvnOutput):
 	def run(self, edit, **args):
 
-		detail = False
+		self.detail = False
 		if 'detail' in args and args['detail']:
-			detail = True
+			self.detail = True
 
+		self.paths_str=getPath(self.view, args)
+		self.view.window().show_input_panel("SVN Log Range:", "500", self.on_done, None, None)
 
-		paths_str=getPath(self.view, args)
-
+	def on_done(self, msg):
 		try:
-			info = client.info(paths_str)
-			start_revision= pysvn.Revision( pysvn.opt_revision_kind.number, info.revision.number ) 
-			end_revision= pysvn.Revision( pysvn.opt_revision_kind.number, info.revision.number - 300 ) 
+			rev_range = int(msg)
+			info = client.info(self.paths_str)
+			start_revision= pysvn.Revision( pysvn.opt_revision_kind.number, info.revision.number - rev_range) 
+			end_revision= pysvn.Revision( pysvn.opt_revision_kind.number, info.revision.number  ) 
 
-			all_logs = client.log( paths_str,revision_start=start_revision,revision_end=end_revision,discover_changed_paths=True )
-		except pysvn.ClientError as e:
+			all_logs = client.log( self.paths_str,revision_start=start_revision,revision_end=end_revision,discover_changed_paths=True )
+		except Exception as e:
 			sublime.error_message(e.args[0])
 			return	
 
 
 		print_str= ''
+		all_logs.reverse()
 		for log in all_logs:
 		    print_str+=( '-'*60 +'\n')
 		    print_str+=( 'rev %d: %s | %s | %d lines' %
@@ -367,12 +382,12 @@ class SvnlogCommand(sublime_plugin.TextCommand):
 
 		    print_str+=( log.message + '\n')
 
-		    if detail == True:
+		    if self.detail == True:
 		    	print_str += '\n'
 		    	print_str += self.getDiffText(log)
 
 		print_str+=( '-'*60 + '\n')	
-		printOutput(self.view, edit, print_str)
+		self.out_panel( print_str)
 
 	def getDiffText(self, log):
 
