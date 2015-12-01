@@ -146,8 +146,6 @@ def getPath(view, args):
 
 	return ''.join(path)
 
-def printOutput(view,edit,text):
-	pass
 
 
 def fmtDateTime( t ):
