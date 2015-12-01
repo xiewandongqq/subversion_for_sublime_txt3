@@ -355,7 +355,6 @@ class SvnlogCommand(sublime_plugin.TextCommand, SvnOutput):
 			sublime.error_message(e.args[0])
 			return	
 
-
 		print_str= ''
 		all_logs.reverse()
 		for log in all_logs:
@@ -385,7 +384,7 @@ class SvnlogCommand(sublime_plugin.TextCommand, SvnOutput):
 		    	print_str += self.getDiffText(log)
 
 		print_str+=( '-'*60 + '\n')	
-		self.out_panel( print_str)
+		self.out_panel( print_str )
 
 	def getDiffText(self, log):
 
