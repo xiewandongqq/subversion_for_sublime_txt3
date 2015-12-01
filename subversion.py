@@ -1,5 +1,5 @@
 import sublime, sublime_plugin
-import sys, os, time
+import sys, os, time, threading
 #sys.path.append(sublime.packages_path()+'/subversion')
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 import pysvn
@@ -175,10 +175,21 @@ class SvnoutputCommand(sublime_plugin.TextCommand):
 			self.view.window().run_command('show_panel', args={'panel':'output.svn_output'})
 	
 class SvnOutput(object):
-		"""docstring for SvnOutput"""
-		def out_panel(self, output):
-			self.view.run_command("svnoutput", args={"output":output})
-				
+	"""docstring for SvnOutput"""
+
+	def out_panel(self, output):
+		self.view.run_command("svnoutput", args={"output":output})
+			
+	def progress_bar(self):
+		status_pic = ['--', '\\', '|', '/']
+		i=0
+		while True:
+			if(self.progress == True):
+			 	break
+			self.view.set_status("svn_status","%s working: %2s " %(self.status_bar_msg, status_pic[i%len(status_pic)]))
+			time.sleep(0.1)
+			i+=1
+		self.view.set_status("svn_status","")	
 
 class SvndiffCommand(sublime_plugin.TextCommand, SvnOutput):
 	def run(self, edit,**args):
@@ -217,20 +228,25 @@ class SvnstCommand(sublime_plugin.TextCommand, SvnOutput):
 
 
 	def run(self, edit, **args):
-		p_flag = 0
-		paths = []
+
+		self.paths_str = getPath(self.view, args)
+		self.status_bar_msg = 'SVN status'
+		self.progress = False
+		thread=threading.Thread(target=self.get_status)
+		thread.start()
+		thread2=threading.Thread(target=self.progress_bar)
+		thread2.start()
+
+	def get_status(self):
 		print_str=''
+		p_flag = 0
 
-		if 'dirs' in args and args['dirs']:
-			paths.extend(args['dirs'])
-		elif 'files' in args and args['files']:
-			paths.extend(args['files'])
+		try:
+			all_files = client.status(self.paths_str, recurse=True, get_all=False, ignore=True, update=False)
+		except Exception as e:
+			sublime.error_message(e.args[0])
+			return
 
-		paths_str = ''.join(paths);
-		all_files = client.status(paths_str, recurse=True, get_all=False, ignore=True, update=False);
-
-		
-		printSvnCmd("Status", paths_str)
 		all_files.sort(key=lambda x:x['text_status'] , reverse=True)
 		for file in all_files:
 			if file.text_status == pysvn.wc_status_kind.ignored:
@@ -238,13 +254,14 @@ class SvnstCommand(sublime_plugin.TextCommand, SvnOutput):
 			if file.text_status ==pysvn.wc_status_kind.normal:
 				continue
 			p_flag=1
-			print_str += '\t%s\t\t%s\n' % (wc_status_kind_map[file.text_status], self.short_path(paths_str, file.path) )
+			print_str += '\t%s\t\t%s\n' % (wc_status_kind_map[file.text_status], self.short_path(self.paths_str, file.path) )
 
 		if p_flag == 0:
 			print_str +="no Changes."
 
 		print_str += "\n"
 		self.out_panel( print_str)
+		self.progress = True
 
 class SvnciCommand(sublime_plugin.TextCommand):
 	file_name=''
@@ -344,8 +361,18 @@ class SvnlogCommand(sublime_plugin.TextCommand, SvnOutput):
 		self.view.window().show_input_panel("SVN Log Range:", "500", self.on_done, None, None)
 
 	def on_done(self, msg):
+		self.msg = msg
+		self.progress=False
+		self.status_bar_msg = 'SVN Log'
+		thread = threading.Thread(target=self.get_log)
+		thread.start()
+		thread2= threading.Thread(target=self.progress_bar)
+		thread2.start()
+
+
+	def get_log(self):
 		try:
-			rev_range = int(msg)
+			rev_range = int(self.msg)
 			info = client.info(self.paths_str)
 			start_revision= pysvn.Revision( pysvn.opt_revision_kind.number, info.revision.number - rev_range) 
 			end_revision= pysvn.Revision( pysvn.opt_revision_kind.number, info.revision.number  ) 
@@ -385,6 +412,7 @@ class SvnlogCommand(sublime_plugin.TextCommand, SvnOutput):
 
 		print_str+=( '-'*60 + '\n')	
 		self.out_panel( print_str )
+		self.progress = True
 
 	def getDiffText(self, log):
 
