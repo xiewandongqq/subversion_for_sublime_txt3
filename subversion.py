@@ -180,23 +180,25 @@ class SvnoutputCommand(sublime_plugin.TextCommand):
 class SvnOutput(object):
 	"""docstring for SvnOutput"""
 
+	progress_lock = threading.Lock()
+
 	def out_panel(self, output='', syntax_file='Packages/Text/Plain text.tmLanguage'):
 		self.view.run_command("svnoutput", args={"output":output, "syntax_file":syntax_file})
 			
 	def progress_thread(self, target, title):
 		self.status_bar_msg = title
-		self.progress = False
 		thread=threading.Thread(target=target)
 		thread.start()
-		thread2=threading.Thread(target=self.progress_bar)
+		thread2=threading.Thread(target=self.__progress_bar)
 		thread2.start()
 
-	def progress_bar(self):
+	def __progress_bar(self):
 		status_pic = ['--', '\\', '|', '/']
 		i=0
 		while True:
-			if(self.progress == True):
-			 	break
+			if(self.progress_lock.acquire(False) == True):
+				self.progress_lock.release()
+				break
 			self.view.set_status("svn_status","%s working: %2s " %(self.status_bar_msg, status_pic[i%len(status_pic)]))
 			time.sleep(0.1)
 			i+=1
@@ -244,6 +246,12 @@ class SvnstCommand(sublime_plugin.TextCommand, SvnOutput):
 		self.progress_thread(self.get_status, 'SVN status')
 
 	def get_status(self):
+		self.progress_lock.acquire(False)
+		self.__get_status()
+		self.progress_lock.release()
+
+	def __get_status(self):
+
 		print_str=''
 		p_flag = 0
 
@@ -267,7 +275,6 @@ class SvnstCommand(sublime_plugin.TextCommand, SvnOutput):
 
 		print_str += "\n"
 		self.out_panel( print_str)
-		self.progress = True
 
 class SvnciCommand(sublime_plugin.TextCommand):
 	file_name=''
@@ -370,8 +377,12 @@ class SvnlogCommand(sublime_plugin.TextCommand, SvnOutput):
 		self.msg = msg
 		self.progress_thread(self.get_log, 'SVN log')
 
-
 	def get_log(self):
+		self.progress_lock.acquire(False)
+		self.__get_log()
+		self.progress_lock.release()
+
+	def __get_log(self):
 		try:
 			rev_range = int(self.msg)
 			info = client.info(self.paths_str)
@@ -413,7 +424,6 @@ class SvnlogCommand(sublime_plugin.TextCommand, SvnOutput):
 
 		print_str+=( '-'*60 + '\n')	
 		self.out_panel( print_str )
-		self.progress = True
 
 	def getDiffText(self, log):
 
