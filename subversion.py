@@ -169,9 +169,14 @@ def getTmpDir():
 class SvnoutputCommand(sublime_plugin.TextCommand):
 	"""docstring for SvnoutputCommand"""
 	def run(self, edit, **args):
+		syntax_file = "Packages/Diff/Diff.tmLanguage"
+		if 'syntax_file' in args and args['syntax_file']:
+			syntax_file = args['syntax_file']
+			
 		if 'output' in args and args['output']:
 			new_view = self.view.window().create_output_panel('svn_output')
 			new_view.insert(edit, 0, args['output'])
+			new_view.set_syntax_file(syntax_file)
 			self.view.window().run_command('show_panel', args={'panel':'output.svn_output'})
 	
 class SvnOutput(object):
