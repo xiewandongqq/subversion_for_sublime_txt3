@@ -204,9 +204,16 @@ class SvnOutput(object):
 
 class SvndiffCommand(sublime_plugin.TextCommand, SvnOutput):
 	def run(self, edit,**args):
+		self.path_str=getPath(self.view, args)
+		self.progress_thread(self.diff, "SVN Diff")
 
+	def diff(self):
+		self.progress_lock.acquire(False)
+		self.__diff()
+		self.progress_lock.release()
 
-		path_str=getPath(self.view, args)
+	def __diff(self):
+
 		tmpdir=getTmpDir()
 		if(tmpdir == ''):
 			print( 'No tmp dir!' )
@@ -217,7 +224,7 @@ class SvndiffCommand(sublime_plugin.TextCommand, SvnOutput):
 
 
 		try:
-			diff_text = client.diff( tmpdir, path_str, recurse=True, revision1=revision1, revision2=revision2, diff_options=['-u'])
+			diff_text = client.diff( tmpdir, self.path_str, recurse=True, revision1=revision1, revision2=revision2, diff_options=['-u'])
 		except pysvn.ClientError as e:
 			sublime.error_message(e.args[0])
 			return
