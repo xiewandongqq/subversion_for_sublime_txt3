@@ -169,9 +169,7 @@ def getTmpDir():
 class SvnoutputCommand(sublime_plugin.TextCommand):
 	"""docstring for SvnoutputCommand"""
 	def run(self, edit, **args):
-
 		syntax_file = args['syntax_file']
-			
 		new_view = self.view.window().create_output_panel('svn_output')
 		new_view.insert(edit, 0, args['output'])
 		new_view.set_syntax_file(syntax_file)
@@ -199,7 +197,7 @@ class SvnOutput(object):
 			if(self.progress_lock.acquire(False) == True):
 				self.progress_lock.release()
 				break
-			self.view.set_status("svn_status","%s working: %2s " %(self.status_bar_msg, status_pic[i%len(status_pic)]))
+			self.view.set_status("svn_status","%s working: %2s " % ( self.status_bar_msg, status_pic[ i % len(status_pic) ] ))
 			time.sleep(0.1)
 			i+=1
 		self.view.set_status("svn_status","")	
