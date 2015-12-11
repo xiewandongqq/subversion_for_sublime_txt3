@@ -326,30 +326,24 @@ class SvnciCommand(sublime_plugin.TextCommand):
 		self.view.window().show_input_panel('SVN Commit Message:','', SvnciCommand.on_done, None, SvnciCommand.on_cancel)
 
 
-class SvnupCommand(sublime_plugin.TextCommand):
+class SvnupCommand(sublime_plugin.TextCommand, SvnOutput):
 	def run(self, edit, **args):
-		path_str=''
-		path=[]
-		if 'dirs' in args and args['dirs']:
-			path.extend(args['dirs'])
-		elif 'files' in args and args['files']:
-			path.extend(args['files'])
-
-		if len(path) == 0:
-			path.extend(self.view.file_name())
-
-		path_str=''.join(path)
-
-		print(path_str)
 		
-		printSvnCmd("Update",path_str)
-		# showConsole(self.view)
+		self.path_str=getPath(self.view, args)
+		self.progress_thread(self.update, 'SVN update')
+	
+	def update(self):
+		self.progress_lock.acquire(False)
+		self.__update()
+
+	def __update(self):	
 		try:		
-			rev_list = client.update( path_str, recurse=True )
+			rev_list = client.update( self.path_str, recurse=True )
 		except pysvn.ClientError as e:
 			sublime.error_message(e.args[0])
 			return
 
+		self.progress_lock.release()
 		sublime.message_dialog('Revision number:%d' % rev_list[0].number)
 		if type(rev_list) == type([]) and len(rev_list) != 1:
 			print( 'rev_list = %r' % [rev.number for rev in rev_list] )
